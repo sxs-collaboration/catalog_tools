@@ -5,6 +5,7 @@ This repo contains the following python scripts:
   * `get_sxs_public_metadata.py` -- download publicly available metadata for the catalog into JSON files
   * `convert_sxs_to_lvc.py` -- convert an SXS waveform into the LVC format (BETA)
   * `compare_sxs_converted_lvc.py` -- compare two different SXS waveforms in the LVC format, checking if attributes, splines, and time series are the same
+  * `compare_sxs_vs_lvc.py` -- compare SXS data in the LVC format to data in the SXS format, checking that they agree
 
 This repo contains the following notebooks in `Examples/`:
   * `sxs_catalog_download_example.ipynb` -- how to download and interact with catalog data
