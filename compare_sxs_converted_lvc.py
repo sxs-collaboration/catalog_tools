@@ -38,7 +38,7 @@ def compare_splines(filename1, filename2, key):
     x_min = np.max([spline1.X[0], spline2.X[0]])
     x_max = np.min([spline1.X[-1], spline2.X[-1]])
     x = np.arange(x_min, x_max, np.abs(spline1.X[1]-spline1.X[0]))
-    diff = np.sum(np.abs(spline1(x) - spline2(x)))
+    diff = np.max(np.abs(spline1(x) - spline2(x)))
     return diff
 
 if __name__ == "__main__":
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     print("Comparing time series")
     for key in time_series_to_check:
         try:
-            diff = np.sum(np.abs(np.array(file1[key]) - np.array(file2[key])))
+            diff = np.max(np.abs(np.array(file1[key]) - np.array(file2[key])))
             if diff < eps:
                 print("= " + key + " (diff = " + str(diff) + ")")
             else:

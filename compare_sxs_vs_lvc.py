@@ -13,6 +13,8 @@ def sxs_id_from_alt_names(alt_names):
     """Takes an array of alternative names from an SXS metadata.json file
     and returns the SXS ID of the simulation."""
     pattern = 'SXS'
+    if not isinstance(alt_names, (list, tuple)):
+        alt_names = [alt_names]
     sxs_id = str(next((ss for ss in alt_names if pattern in ss), None))
     return sxs_id
 

@@ -39,6 +39,8 @@ def sxs_id_from_alt_names(alt_names):
     """Takes an array of alternative names from an SXS metadata.json file
     and returns the SXS ID of the simulation."""
     pattern = 'SXS'
+    if not isinstance(alt_names, (list, tuple)):
+        alt_names = [alt_names]
     sxs_id = str(next((ss for ss in alt_names if pattern in ss), None))
     return sxs_id
 
@@ -462,8 +464,8 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
     # Get the mass ratio and spin magnitudes of the current simulation
     mass1 = catalog[sxs_id]['initial_mass1']
     mass2 = catalog[sxs_id]['initial_mass2']
-    spin1 = catalog[sxs_id]['initial_spin1']
-    spin2 = catalog[sxs_id]['initial_spin2']
+    spin1 = catalog[sxs_id]['initial_dimensionless_spin1']
+    spin2 = catalog[sxs_id]['initial_dimensionless_spin2']
     mass_ratio = mass1 / mass2
     spin1_magnitude = np.linalg.norm(spin1)
     spin2_magnitude = np.linalg.norm(spin2)
@@ -479,8 +481,8 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
     same_id_and_spec_revision = []
     for key in has_multiple_resolutions:
         if catalog[key]['spec_revisions'] == catalog[sxs_id]['spec_revisions'] \
-            and catalog[key]['initial-data-type'] \
-            == catalog[sxs_id]['initial-data-type']:
+            and catalog[key]['initial_data_type'] \
+            == catalog[sxs_id]['initial_data_type']:
                 same_id_and_spec_revision.append(key)
 
     if len(same_id_and_spec_revision) > 0:
@@ -499,8 +501,8 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
     for key in has_multiple_resolutions:
         current_mass1 = catalog[key]['initial_mass1']
         current_mass2 = catalog[key]['initial_mass2']
-        current_spin1 = catalog[key]['initial_spin1']
-        current_spin2 = catalog[key]['initial_spin2']
+        current_spin1 = catalog[key]['initial_dimensionless_spin1']
+        current_spin2 = catalog[key]['initial_dimensionless_spin2']
         current_mass_ratio = current_mass1 / current_mass2
         current_spin1_magnitude = np.linalg.norm(current_spin1)
         current_spin2_magnitude = np.linalg.norm(current_spin2)
@@ -533,6 +535,8 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     log("Writing metadata")
     # Get the SXS ID for the current simulation
     names = metadata['alternative_names']
+    if not isinstance(names, (list, tuple)):
+        names = [names]
     sxs_id = sxs_id_from_alt_names(names)
     out_file = h5py.File(out_filename, 'a')
 
