@@ -68,7 +68,7 @@ def waveform_norm_squared(
     times = sxs_format_waveform[extrap]['Y_l2_m2.dat'][:, 0]
     sum_amp_squared = 0.0 * times
     for key in sxs_format_waveform[extrap].keys():
-        if(key[0:2] == "Y_"):
+        if "Y_" in key:
             for i in range(1, 3):
                 sum_amp_squared += np.square(
                     sxs_format_waveform[extrap][key][:, i])
@@ -102,28 +102,24 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     extrap = str(extrapolation_order) + ".dir"
 
     if modes == "all":
-        modes = []
-        for l in range(2, 9):
-            for m in range(-l, l + 1):
-                modes.append([l, m])
-
+        modes = [[l,m] for l in range(2,9) for m in range(-l,l+1)]
+        
     log("Modes: " + str(modes))
     amps = []
     phases = []
     times_list = []
     l_max = 0
+    # All modes have the same time, so just look at the l=m=2 mode to get                                                                                                                                                                                                            
+    # the times                                                                                                                                                                                                                                                                      
+    times = sxs_format_waveform[extrap]['Y_l2_m2.dat'][:, 0]
+    start = first_index_after_relaxation_time(times, metadata)
+    peak = peak_time_from_sxs(
+        sxs_format_waveform, metadata, extrapolation_order)
     for mode in modes:
         l = mode[0]
         m = mode[1]
         log("Computing mode: l = " + str(l) + ", m = " + str(m))
         mode = "Y_l" + str(l) + "_m" + str(m) + ".dat"
-
-        # All modes have the same time, so just look at the l=m=2 mode to get
-        # the times
-        times = sxs_format_waveform[extrap][mode][:, 0]
-        start = first_index_after_relaxation_time(times, metadata)
-        peak = peak_time_from_sxs(
-            sxs_format_waveform, metadata, extrapolation_order)
         hlm = sxs_format_waveform[extrap][mode]
 
         # CHECK ME: is the + sign correct here?
@@ -250,25 +246,20 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
         sxs_horizons['AhC.dir']['CoordCenterInertial.dat'], start_time,
         peak_time)
 
-    # n_vec is a unit vector pointing from the secondary (black hole A) to
-    # the primary (black hole B). We use np.linalg.norm() to get the Euclidean
-    # magnitude of n_vec. Note that each line here does a vector operation for
-    # each time. So we can't just do vector operations on the numpy arrays
-    # themselves. Instead, we loop over index i, which corresponds to
-    # different times, and then do a vector operation at each time.
-    n_vec = np.array([x_A[:, i] - x_B[:, i] for i in range(0, len(x_A[0]))])
-    n_vec_norm = np.array([np.linalg.norm(n_vec[i])
-                           for i in range(0, len(n_vec))])
-    n_hat = np.array([n_vec[i, :] / n_vec_norm[i]
-                      for i in range(0, len(n_vec))])
-
+    # n_vec is a unit vector pointing from the secondary (black hole B) to
+    # the primary (black hole A). We use np.linalg.norm() to get the Euclidean
+    # magnitude of n_vec.
+    x_A = x_A.T
+    x_B = x_B.T
+    n_vec = x_A-x_B
+    n_vec_norm = np.linalg.norm(n_vec,axis=-1)
+    n_hat  = n_vec/n_vec_norm[:,None]
+    
     # We compute dn_vec/dt to get a velocity vector, by computing differences
     # for dn_vec and dt.
     dn_vec = np.diff(n_vec, axis=0)
     dt = np.diff(t_A)
-
-    # Here, index a refers not to time but to the tensor component x,y,z
-    dn_vec_dt = np.array([dn_vec[:, a] / dt for a in range(0, 3)]).T
+    dn_vec_dt = dn_vec/dt[:,None]
 
     # The orbital frequency is the magnitude of n_vec x dn_vec/dt
     # This is just from the Newtonian expression |r x v| = r^2 \omega.
@@ -276,28 +267,20 @@ def derived_horizon_quantities_from_sxs(sxs_horizons, start_time, peak_time):
     # drop the last time of n_vec so n_vec and dn_vec_dt have the same number
     # of points.
     r_cross_v = np.array([np.cross(n_vec[i], dn_vec_dt[i])
-                          for i in range(0, len(dn_vec_dt))])
-    r_cross_v_norm = np.array([np.linalg.norm(r_cross_v[i])
-                               for i in range(0, len(r_cross_v))])
-    omega_orbit = np.array([r_cross_v_norm[i] / np.square(n_vec_norm[i])
-                            for i in range(0, len(r_cross_v_norm))])
+                          for i in range(len(dn_vec_dt))])
+    r_cross_v_norm = np.linalg.norm(r_cross_v,axis=-1)
+    omega_orbit = r_cross_v_norm / n_vec_norm[:-1]**2
 
     # Finally, LNhat is a unit vector in the direction of the orbital
     # angular momentum. That is, it is a unit vector in the direction of
     # r x p, which is the same direction as r x v.
-    LN_hat = np.array([r_cross_v[i] / r_cross_v_norm[i]
-                       for i in range(0, len(r_cross_v))])
-
+    LN_hat = r_cross_v / r_cross_v_norm[:,None]
+              
     # Horizons.h5 stores quantities as functions of time. Append time to the
     # derived quantities.
-    n_hat_vs_time = np.array(
-        [[t_A[i], n_hat[i][0], n_hat[i][1], n_hat[i][2]]
-         for i in range(0, len(n_hat))])
-    omega_orbit_vs_time = np.array(
-        [[t_A[i], omega_orbit[i]] for i in range(0, len(omega_orbit))])
-    LN_hat_vs_time = np.array(
-        [[t_A[i], LN_hat[i][0], LN_hat[i][1], LN_hat[i][2]]
-         for i in range(0, len(LN_hat))])
+    n_hat_vs_time = np.c_[t_A,n_hat]
+    omega_orbit_vs_time = np.c_[t_A[:-1],omega_orbit]
+    LN_hat_vs_time = np.c_[t_A[:-1],LN_hat]
     return n_hat_vs_time, omega_orbit_vs_time, LN_hat_vs_time, t_A, t_B, t_C
 
 
@@ -461,7 +444,6 @@ def find_comparable_simulations(sxs_id, catalog, catalog_resolutions):
     LVC-format filename that is a comparable simulation with
     multiple resolutions available.
     """
-    # Get the mass ratio and spin magnitudes of the current simulation
     mass1 = catalog[sxs_id]['initial_mass1']
     mass2 = catalog[sxs_id]['initial_mass2']
     spin1 = catalog[sxs_id]['initial_dimensionless_spin1']
@@ -731,7 +713,7 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
     log("  resolution: " + str(resolution))
     log("  sxs_catalog_metadata_path: " + sxs_catalog_metadata_path)
     log("  sxs_catalog_resolutions_path: " + sxs_catalog_resolutions_path)
-    log("  modes: " + str(modes))
+    log("  modes: " + str(modes))
     log("  out_path: " + str(out_path))
 
     out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" \
@@ -791,17 +773,13 @@ if __name__ == "__main__":
     args = p.parse_args()
 
     if args.modes == 'all':
-        modes = []
-        for l in range(2, 9):
-            for m in range(-l, l + 1):
-                modes.append([l, m])
+        modes = [[l,m] for l in range(2,9) for m in range(-l,l+1)]
     elif args.modes == '22only':
         modes = [[2, 2], [2, -2]]
     else:
         l_max = int(args.modes)
-        for l in range(2, l_max + 1):
-            for m in range(-l, l + 1):
-                modes.append([l, m])
+        modes = [[l,m] for l in range(2,l_max+1) for m in range(-l,l+1)]
+        
 
     convert_simulation(args.sxs_data, args.resolution, args.sxs_catalog_metadata,
                        args.sxs_catalog_resolutions, modes, args.out_path)
