@@ -177,24 +177,15 @@ def compare_wave_time_series(lvc, rhOverM, extrap="Extrapolated_N2"):
     lvc_wave_times = np.array(lvc["NRtimes"])
     start_time = lvc.attrs["NR_start_time"]
     peak_time = lvc.attrs["NR_peak_time"]
-    # Ensure that all waveform modes were generated using the same times
-    diff_all_times_identical = 0.0
-    for times in lvc_wave_times:
-        diff_all_times_identical += np.max(np.abs(times - lvc_wave_times[0]))
-    if diff_all_times_identical > 0.0:
-        print("x NRtimes not all identical")
-    else:
-        print("= NRtimes are all identical")
 
-    # Check the first time series is as expected
+    # Check that the time series is as expected
     sxs_key = "Y_l2_m2.dat"
     hlm = rhOverM[extrap + ".dir"][sxs_key]
     times_raw = hlm[:, 0]
-    start_h = np.abs(times_raw - start_time).argmin() + 1
+    start_h = np.abs(times_raw - start_time).argmin()
     sxs_times = hlm[start_h:, 0] - peak_time
 
-    # FIX ME: Why do the lvc NRtimes have one extra point?
-    diff = np.max(np.abs(sxs_times - lvc_wave_times[0][1:]))
+    diff = np.max(np.abs(sxs_times - lvc_wave_times))
     if (diff > 0.0):
         print("x NRtimes differs from SXS l=m=2 times (diff = " \
               + str(diff) + ")")
