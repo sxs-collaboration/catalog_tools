@@ -171,7 +171,8 @@ def write_splines_to_H5(
         out_group_phase = out_file.create_group('phase_l%d_m%d' % (l, m))
         spline_amps[i].write(out_group_amp)
         spline_phases[i].write(out_group_phase)
-    out_file.create_dataset('NRtimes', data=times)
+        if (l == 2 and m == 2):
+            out_file.create_dataset('NRtimes', data=times[i])
     out_file.close()
 
 ########################################################
