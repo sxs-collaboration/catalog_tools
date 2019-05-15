@@ -14,7 +14,7 @@ import sys
 
 def resolutions_for_simulation(sxs_id, zenodo_metadata):
     """Returns a list of the available resolutions for a given sxs_id
-    and zenodo metadata metadata"""
+    and zenodo metadata"""
     resolutions = []
     files = zenodo_metadata[sxs_id]['files']
     for file in files:
