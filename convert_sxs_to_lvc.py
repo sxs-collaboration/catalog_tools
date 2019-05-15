@@ -573,7 +573,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
         # CHECK ME: is this the right thing to do for cases where we can't
         # measure eccentricity?
         log("Warning: eccentricity not measured for this simulation")
-        eccentricity = -44444444.44444444
+        eccentricity = -1.0
     else:
         eccentricity = float(eccentricity)
 
