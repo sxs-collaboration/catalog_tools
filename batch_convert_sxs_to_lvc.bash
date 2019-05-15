@@ -37,6 +37,7 @@ python_env_cmd="/home/geoffrey/apps/anaconda2/bin/activate root"
 
 #############################################################
 # SHOULD NOT NEED TO MODIFY ANYTHING BELOW THIS LINE
+# (except, possibly, flags in cmd_to_run)
 #############################################################
 
 # First, make sure we can find the conversion script
@@ -78,40 +79,6 @@ then
 fi
 
 # Next, check that all paths have the expected data and name
-for path in "$@"
-do
-    abs_path=$(readlink -f ${path})
-    echo "Checking ${abs_path}"
-
-    # Get resolution and paths to data to read
-    base_path=$(basename ${path})
-    resolution=$(echo ${base_path} | sed "s/Lev//" | sed "s/Res//")
-    waveform_file=${abs_path}/rhOverM_Asymptotic_GeometricUnits_CoM.h5
-    horizons_file=${abs_path}/Horizons.h5
-    metadata_file=${abs_path}/metadata.json
-
-    if [ "${resolution}" -eq "${resolution}" ]
-    then
-        echo "Resolution: ${resolution} (inferred from ${base_path})"
-    else
-        echo "ERROR: cannot infer resolution from path ${base_path}"
-        exit 1
-    fi
-
-    # Check that required data files exist
-    files_to_check=(${waveform_file} ${horizons_file} ${metadata_file})
-    for file in ${files_to_check[@]}
-    do
-        if [[ -f "${file}" ]]
-        then
-            echo "Found $file"
-        else
-            echo "ERROR: Could not find ${file}"
-            exit 1
-        fi
-    done
-done
-
 for path in "$@"
 do
     abs_path=$(readlink -f ${path})
