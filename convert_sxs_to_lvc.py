@@ -48,15 +48,16 @@ def sxs_id_from_alt_names(alt_names):
 def first_index_after_time(times, target_time):
     """Returns the index of the first time in a list of times after
     time target_time."""
-    return np.abs(times - target_time).argmin() - 1
+    return np.abs(times - target_time).argmin() + 1
 
 
-def first_index_after_relaxation_time(times, metadata):
+def first_index_after_relaxation_time(times, metadata, offset=-2):
     """Returns the index of the first time in a list of times after the
     relaxation time, which is given as a key in metadata, i.e.
-    metadata['relaxed_measurement_time']."""
+    metadata['relaxed_measurement_time'], except actually return an 
+    index offset earlier."""
     relaxation_time = metadata['relaxed_measurement_time']
-    return first_index_after_time(times, relaxation_time)
+    return first_index_after_time(times, relaxation_time) - offset
 
 
 def waveform_norm_squared(
@@ -188,7 +189,7 @@ def prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
     return the truncated/shifted times and truncated values."""
     # First, figure out the correct time series
     times_raw_AH = sxs_horizon_quantity[:, 0]
-    start_AH = np.argmin(np.abs(times_raw_AH - start_time)) - 1
+    start_AH = np.argmin(np.abs(times_raw_AH - start_time))
     times_AH = times_raw_AH[start_AH:] - peak_time
 
     # Loop over remaining components, truncating each one to match times_AH
