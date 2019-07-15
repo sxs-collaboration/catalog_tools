@@ -14,8 +14,36 @@ import os
 import sys
 import time
 
-# Update next line with path to romspline, if not in a standard location
-sys.path.append("/Users/geoffrey/Codes/CatalogAnalysis")
+if __name__ == "__main__":
+    p = argparse.ArgumentParser(description="Convert SXS data to LVC format")
+    p.add_argument("--sxs_data",
+                   help="Path containing rh*h5, Horizons.h5, metadata.json",
+                   required=True)
+    p.add_argument("--resolution", type=int,
+                   help="Int giving the resolution of the data to convert",
+                   required=True)
+    p.add_argument("--sxs_catalog_metadata",
+                   help="Path to sxs_catalog.json (via get_sxs_public_metadata.py)",
+                   required=True)
+    p.add_argument("--sxs_catalog_resolutions",
+                   help="Path to sxs_catalog_resolutions.json",
+                   required=True)
+    p.add_argument("--modes", help="'all', '22only', or int for max l")
+    p.add_argument("--out_path", help="Path where LVC format file is output")
+    p.add_argument("--romspline_path", help="Path to romspline python module", default=".")
+    args = p.parse_args()
+
+    if args.modes == 'all':
+        modes = [[l,m] for l in range(2,9) for m in range(-l,l+1)]
+    elif args.modes == '22only':
+        modes = [[2, 2], [2, -2]]
+    else:
+        l_max = int(args.modes)
+        modes = [[l,m] for l in range(2,l_max+1) for m in range(-l,l+1)]
+
+    # Update next line with path to romspline, if not in a standard location
+    sys.path.append(args.romspline_path)
+
 import romspline
 
 ########################################################
@@ -29,6 +57,19 @@ def log(string):
     global history
     history += string + "\n"
     print(string)
+
+
+########################################################
+# Getting a list of BBH simulations from a list of all
+# simulations
+########################################################
+
+def bbh_keys_from_simulation_keys(simulation_keys):
+    bbh_simulations = []
+    for simulation in simulation_keys:
+        if simulation.split(':')[-2] == "BBH":
+            bbh_simulations.append(simulation)
+    return bbh_simulations
 
 ########################################################
 # Functions to convert waveform quantities to LVC format
@@ -54,10 +95,18 @@ def first_index_after_time(times, target_time):
 def first_index_after_relaxation_time(times, metadata, offset=-2):
     """Returns the index of the first time in a list of times after the
     relaxation time, which is given as a key in metadata, i.e.
-    metadata['relaxed_measurement_time'], except actually return an 
+    metadata['relaxation_time'], except actually return an 
     index offset earlier."""
-    relaxation_time = metadata['relaxed_measurement_time']
+    relaxation_time = metadata['relaxation_time']
     return first_index_after_time(times, relaxation_time) - offset
+
+def first_index_before_reference_time(times, metadata, offset=2):
+    """Returns the index of the first time in a list of times before the
+    reference time, which is given as a key in metadata, i.e.
+    metadata['reference_time'], except actually return an 
+    index offset earlier."""
+    reference_time = metadata['reference_time']
+    return first_index_after_time(times, reference_time) - offset
 
 
 def waveform_norm_squared(
@@ -88,7 +137,7 @@ def peak_time_from_sxs(
     # times
     times = sxs_format_waveform[extrapolation_order +
                                 ".dir"]['Y_l2_m2.dat'][:, 0]
-    start = first_index_after_relaxation_time(times, metadata)
+    start = first_index_before_reference_time(times, metadata)
     sum_amp_squared = waveform_norm_squared(
         sxs_format_waveform, extrapolation_order)
     index_peak = start + sum_amp_squared[start:].argmax()
@@ -110,10 +159,10 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     phases = []
     times_list = []
     l_max = 0
-    # All modes have the same time, so just look at the l=m=2 mode to get                                                                                                                                                                                                            
-    # the times                                                                                                                                                                                                                                                                      
+    # All modes have the same time, so just look at the l=m=2 mode to get
+    # the times
     times = sxs_format_waveform[extrap]['Y_l2_m2.dat'][:, 0]
-    start = first_index_after_relaxation_time(times, metadata)
+    start = first_index_before_reference_time(times, metadata)
     peak = peak_time_from_sxs(
         sxs_format_waveform, metadata, extrapolation_order)
     for mode in modes:
@@ -184,7 +233,7 @@ def write_splines_to_H5(
 def prepare_horizon_quantity(sxs_horizon_quantity, start_time, peak_time):
     """Returns times and values of an SXS-format horizon quantity, such as
     AhA.dir/ArealMass.dat. This function first truncates the horizon data,
-    including only data after the relaxation time. Then, it shifts the time
+    including only data after the reference time. Then, it shifts the time
     by the same amount as the waveforms (i.e., by the peak time). Then,
     return the truncated/shifted times and truncated values."""
     # First, figure out the correct time series
@@ -511,10 +560,10 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     The argument catalog_resolutions is a dictionary (read from a
     json file) whose keys are SXS ID numbers, and whose values are lists
     of integers corresponding to the resolutions available for that
-    SXS ID number in the SXS catalog. The argument catalog can be read
-    from e.g. arXiv:1904.04831's ancilliary file sxs_catalog.json; the
-    keys are SXS ID numbers, and the values are metadata for the simulation,
-    such as masses and spins.
+    SXS ID number in the SXS catalog. The argument catalog should point to
+    the SXS catalog metadata JSON file, available at 
+    https://data.black-holes.org/catalog.json or via
+    get_sxs_public_metadata.py.
     """
     log("Writing metadata")
     # Get the SXS ID for the current simulation
@@ -530,9 +579,9 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     aux_group.create_dataset('metadata.json', data=json_this_sim)
 
     # Note: all numerical quantities for LVC attributes
-    # are at relaxation time unless otherwise indicated
-    mass1 = metadata["relaxed_mass1"]
-    mass2 = metadata["relaxed_mass2"]
+    # are at the reference time unless otherwise indicated
+    mass1 = metadata["reference_mass1"]
+    mass2 = metadata["reference_mass2"]
     total_mass = mass1 + mass2
     eta = (mass1 * mass2) / np.square(total_mass)
 
@@ -541,21 +590,21 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     if eta > 0.25 and eta < 0.2501:
         eta = 0.25
 
-    dimensionless_spin1 = metadata["relaxed_dimensionless_spin1"]
-    dimensionless_spin2 = metadata["relaxed_dimensionless_spin2"]
+    dimensionless_spin1 = metadata["reference_dimensionless_spin1"]
+    dimensionless_spin2 = metadata["reference_dimensionless_spin2"]
 
-    position1 = np.array(metadata["relaxed_position1"])
-    position2 = np.array(metadata["relaxed_position2"])
+    position1 = np.array(metadata["reference_position1"])
+    position2 = np.array(metadata["reference_position2"])
     separation = position1 - position2
 
     n_hat = separation / np.linalg.norm(separation)
-    omega_orbit_vec = metadata["relaxed_orbital_frequency"]
+    omega_orbit_vec = metadata["reference_orbital_frequency"]
     omega_orbit = np.linalg.norm(omega_orbit_vec)
     omega_grav_22 = 2.0 * omega_orbit
 
     # Unit vector in direction of orbital angular momentum, which
     # is the same as the direction of the orbital angular velocity
-    # at the relaxation time
+    # at the reference time
     ln_hat = omega_orbit_vec / omega_orbit
 
     # Compute 1 solar mass * G/c^3
@@ -564,7 +613,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     msun_seconds = 4.925491025543576e-06
 
     # Eccentricity quantities
-    eccentricity = metadata['relaxed_eccentricity']
+    eccentricity = metadata['reference_eccentricity']
     if str(eccentricity)[0] == "<":
         eccentricity = float(str(eccentricity)[1:])
     if str(eccentricity)[0] == ">":
@@ -578,7 +627,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     else:
         eccentricity = float(eccentricity)
 
-    mean_anomaly = metadata['relaxed_mean_anomaly']
+    mean_anomaly = metadata['reference_mean_anomaly']
     if isinstance(mean_anomaly, str):
         if mean_anomaly == '[unknown]':
             mean_anomaly = -1.0
@@ -607,7 +656,7 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     out_file.attrs['eta'] = eta
 
     # Metadata not in arXiv:1703.01076
-    out_file.attrs['NR_reference_time'] = metadata['relaxed_measurement_time']
+    out_file.attrs['NR_reference_time'] = metadata['reference_time']
     out_file.attrs['NR_start_time'] = start_time
     out_file.attrs['NR_peak_time'] = peak_time  # not in Patricia's script
     out_file.attrs['NR_frame'] = 'inertial'
@@ -667,7 +716,8 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
     else:
         out_file.attrs['production-run'] = 1
         out_file.attrs['files-in-error-series'] = ""
-        comparable = find_comparable_simulations(sxs_id, catalog,
+        comparable = find_comparable_simulations(sxs_id, 
+                                                 catalog['simulations'],
                                                  catalog_resolutions)
         out_file.attrs['comparable-simulation'] = comparable
 
@@ -684,8 +734,7 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
     Additionally, the function requires paths to the following:
         iv)  sxs_catalog_metadata_path points to sxs_catalog.json, which
              contains information such as masses and spins. A file in this
-             format is available from arXiv:1904.04831. Keys are
-             SXS ID numbers, and values are dictionaries of metadata.
+             format is available at https://data.black-holes.org/catalog.json.
         v)   sxs_catalog_resolutions_path points to a file whose keys are
              SXS ID numbers and whose values are lists of integers, where each
              integer corresponds to a resolution available in the catalog.
@@ -757,31 +806,5 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
     rhOverM.close()
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser(description="Convert SXS data to LVC format")
-    p.add_argument("--sxs_data",
-                   help="Path containing rh*h5, Horizons.h5, metadata.json",
-                   required=True)
-    p.add_argument("--resolution", type=int,
-                   help="Int giving the resolution of the data to convert",
-                   required=True)
-    p.add_argument("--sxs_catalog_metadata",
-                   help="Path to sxs_catalog.json (e.g. via arXiv:1904.04831)",
-                   required=True)
-    p.add_argument("--sxs_catalog_resolutions",
-                   help="Path to sxs_catalog_resolutions.json",
-                   required=True)
-    p.add_argument("--modes", help="'all', '22only', or int for max l")
-    p.add_argument("--out_path", help="Path where LVC format file is output")
-    args = p.parse_args()
-
-    if args.modes == 'all':
-        modes = [[l,m] for l in range(2,9) for m in range(-l,l+1)]
-    elif args.modes == '22only':
-        modes = [[2, 2], [2, -2]]
-    else:
-        l_max = int(args.modes)
-        modes = [[l,m] for l in range(2,l_max+1) for m in range(-l,l+1)]
-        
-
-    convert_simulation(args.sxs_data, args.resolution, args.sxs_catalog_metadata,
-                       args.sxs_catalog_resolutions, modes, args.out_path)
+   convert_simulation(args.sxs_data, args.resolution, args.sxs_catalog_metadata,
+                       args.sxs_catalog_resolutions, modes, args.out_path)    

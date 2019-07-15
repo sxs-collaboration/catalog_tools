@@ -12,6 +12,14 @@ from sxs import zenodo as zen
 import sys
 
 
+def bbh_keys_from_simulation_keys(simulation_keys):
+    bbh_simulations = []
+    for simulation in simulation_keys:
+        if simulation.split(':')[-2] == "BBH":
+            bbh_simulations.append(simulation)
+    return bbh_simulations
+
+
 def resolutions_for_simulation(sxs_id, sxs_catalog):
     """Returns a list of the available resolutions for a given sxs_id
     and sxs catalog metadata"""
@@ -43,19 +51,13 @@ request = requests.get("https://data.black-holes.org/catalog.json",
                        headers={'accept': 'application/citeproc+json'})
 sxs_catalog = request.json()
 
-# Get list of SXS IDs for all BBH simulations
-bbh_simulations = []
-for simulation in sxs_catalog['simulations']:
-    if simulation.split(':')[-2] == "BBH":
-        bbh_simulations.append(simulation)
-
-# Save the metadata, adding a list of SXS IDs for BBH simulations
-sxs_catalog['bbh_simulation_keys'] = bbh_simulations
+# Save the metadata
 with open(args.output_dir + "/sxs_catalog.json", 'w') as file:
     file.write(json.dumps(sxs_catalog))
 
-
 # Generate sxs_zenodo_resolutions.json
+simulation_keys = sxs_catalog['simulations'].keys()
+bbh_simulations = bbh_keys_from_simulation_keys(simulation_keys)
 print("Generating " + args.output_dir + "/sxs_zenodo_resolutions.json")
 resolutions_available = {}
 for simulation in bbh_simulations:

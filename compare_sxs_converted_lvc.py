@@ -5,8 +5,22 @@ import numpy as np
 import sys
 import time
 
-# Update next line with path to romspline, if not in a standard location
-sys.path.append("/Users/geoffrey/Codes/CatalogAnalysis")
+if __name__ == "__main__":
+    p = argparse.ArgumentParser(description="Compare two SXS LVC format files")
+    p.add_argument("--file1",
+                   help="Path to first file",
+                   required=True)
+    p.add_argument("--file2",
+                   help="Path to second file",
+                   required=True)
+    p.add_argument("--romspline_path",
+                   help="Path to romspline module",
+                   default=".")
+    args = p.parse_args()
+
+    # Update next line with path to romspline, if not in a standard location
+    sys.path.append(args.romspline_path)
+
 import romspline
 
 def compare_attributes(file1, file2):
@@ -42,14 +56,6 @@ def compare_splines(filename1, filename2, key):
     return diff
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser(description="Compare two SXS LVC format files")
-    p.add_argument("--file1",
-                   help="Path to first file",
-                   required=True)
-    p.add_argument("--file2",
-                   help="Path to second file",
-                   required=True)
-    args = p.parse_args()
     file1 = h5py.File(args.file1)
     file2 = h5py.File(args.file2)
 

@@ -5,8 +5,27 @@ import numpy as np
 import sys
 import time
 
-# Update next line with path to romspline, if not in a standard location
-sys.path.append("/Users/geoffrey/Codes/CatalogAnalysis")
+if __name__ == "__main__":
+    p = argparse.ArgumentParser(description="Compare SXS, LVC data")
+    p.add_argument("--lvc_file",
+                   help="Path to SXS_BBH_????_Res?.h5",
+                   required=True)
+    p.add_argument("--sxs_waveform",
+                   help="Path to rhOverM_Asymptotic_GeometricUnits_Com.h5",
+                   required=True)
+    p.add_argument("--sxs_horizons",
+                   help="Path to Horizons.h5",
+                   required=True)
+    p.add_argument("--sxs_json",
+                   help="Path to metadata.json",
+                   required=True)
+    p.add_argument("--romspline_path",
+                   help="Path to romspline module",
+                   default=".")
+    args = p.parse_args()
+
+    # Update next line with path to romspline, if not in a standard location
+    sys.path.append(args.romspline_path)
 import romspline
 
 def sxs_id_from_alt_names(alt_names):
@@ -31,8 +50,8 @@ def compare_attributes(lvc, metadata):
     sxs_id = sxs_id_from_alt_names(metadata["alternative_names"])
     compare_attribute("name", lvc.attrs["name"], sxs_id)
 
-    mass1 =  metadata["relaxed_mass1"]
-    mass2 =  metadata["relaxed_mass2"]
+    mass1 =  metadata["reference_mass1"]
+    mass2 =  metadata["reference_mass2"]
     compare_attribute("mass1", lvc.attrs["mass1"], mass1)
     compare_attribute("mass2", lvc.attrs["mass2"], mass2)
 
@@ -40,19 +59,19 @@ def compare_attributes(lvc, metadata):
     compare_attribute("eta", lvc.attrs["eta"], eta)
 
     compare_attribute("spin1x", lvc.attrs["spin1x"],
-                      metadata["relaxed_dimensionless_spin1"][0])
+                      metadata["reference_dimensionless_spin1"][0])
     compare_attribute("spin1y", lvc.attrs["spin1y"],
-                      metadata["relaxed_dimensionless_spin1"][1])
+                      metadata["reference_dimensionless_spin1"][1])
     compare_attribute("spin1z", lvc.attrs["spin1z"],
-                      metadata["relaxed_dimensionless_spin1"][2])
+                      metadata["reference_dimensionless_spin1"][2])
     compare_attribute("spin2x", lvc.attrs["spin2x"],
-                      metadata["relaxed_dimensionless_spin2"][0])
+                      metadata["reference_dimensionless_spin2"][0])
     compare_attribute("spin2y", lvc.attrs["spin2y"],
-                      metadata["relaxed_dimensionless_spin2"][1])
+                      metadata["reference_dimensionless_spin2"][1])
     compare_attribute("spin2z", lvc.attrs["spin2z"],
-                      metadata["relaxed_dimensionless_spin2"][2])
+                      metadata["reference_dimensionless_spin2"][2])
 
-    omega_orbit_vec = metadata["relaxed_orbital_frequency"]
+    omega_orbit_vec = metadata["reference_orbital_frequency"]
     omega_orbit = np.linalg.norm(omega_orbit_vec)
     compare_attribute("Omega", lvc.attrs["Omega"], omega_orbit)
 
@@ -64,7 +83,7 @@ def compare_attributes(lvc, metadata):
     compare_attribute("f_lower_at_1MSUN", lvc.attrs["f_lower_at_1MSUN"],
                       f_lower_at_1_msun)
 
-    eccentricity = metadata['relaxed_eccentricity']
+    eccentricity = metadata['reference_eccentricity']
     if str(eccentricity)[0] == "<":
         eccentricity = float(str(eccentricity)[1:])
     if str(eccentricity)[0] == ">":
@@ -76,7 +95,7 @@ def compare_attributes(lvc, metadata):
         eccentricity = float(eccentricity)
     compare_attribute("eccentricity", lvc.attrs["eccentricity"], eccentricity)
 
-    mean_anomaly = metadata['relaxed_mean_anomaly']
+    mean_anomaly = metadata['reference_mean_anomaly']
     if isinstance(mean_anomaly, str):
         if mean_anomaly == '[unknown]':
             mean_anomaly = -1.0
@@ -194,20 +213,6 @@ def compare_wave_time_series(lvc, rhOverM, extrap="Extrapolated_N2"):
               + str(diff) + ")")
 
 if __name__ == "__main__":
-    p = argparse.ArgumentParser(description="Compare SXS, LVC data")
-    p.add_argument("--lvc_file",
-                   help="Path to SXS_BBH_????_Res?.h5",
-                   required=True)
-    p.add_argument("--sxs_waveform",
-                   help="Path to rhOverM_Asymptotic_GeometricUnits_Com.h5",
-                   required=True)
-    p.add_argument("--sxs_horizons",
-                   help="Path to Horizons.h5",
-                   required=True)
-    p.add_argument("--sxs_json",
-                   help="Path to metadata.json",
-                   required=True)
-    args = p.parse_args()
     lvc = h5py.File(args.lvc_file, 'r')
     rhOverM = h5py.File(args.sxs_waveform, 'r')
     horizons = h5py.File(args.sxs_horizons, 'r')
