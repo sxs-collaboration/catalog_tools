@@ -55,14 +55,14 @@ sxs_catalog = request.json()
 with open(args.output_dir + "/sxs_catalog.json", 'w') as file:
     file.write(json.dumps(sxs_catalog))
 
-# Generate sxs_zenodo_resolutions.json
+# Generate sxs_catalog_resolutions.json
 simulation_keys = sxs_catalog['simulations'].keys()
 bbh_simulations = bbh_keys_from_simulation_keys(simulation_keys)
-print("Generating " + args.output_dir + "/sxs_zenodo_resolutions.json")
+print("Generating " + args.output_dir + "/sxs_catalog_resolutions.json")
 resolutions_available = {}
 for simulation in bbh_simulations:
     resolutions_available[simulation] = \
         resolutions_for_simulation(simulation, sxs_catalog)
 
-with open(args.output_dir + "/sxs_zenodo_resolutions.json", 'w') as file:
+with open(args.output_dir + "/sxs_catalog_resolutions.json", 'w') as file:
     file.write(json.dumps(resolutions_available))
