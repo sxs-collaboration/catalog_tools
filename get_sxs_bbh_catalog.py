@@ -3,8 +3,7 @@
 
 # A script that downloads the following for all resolutions
 # of all binary-black-hole simulations in the publc SXS catalog,
-# placing the results in the directory specified by the 
-# --output_dir option:
+# placing the results in the current directory:
 #
 #  * metadata.txt (converted to metadata.json)
 #  * rhOverM_Asymptotic_GeometricUnits_CoM.h5
@@ -25,9 +24,6 @@ def bbh_keys_from_simulation_keys(simulation_keys):
     return bbh_simulations
 
 p = argparse.ArgumentParser(description="Get SXS public BBH data")
-p.add_argument("--output_dir",
-               help="Name of output directory (must not exist)",
-               required=True)
 p.add_argument("--sxs_catalog_metadata",
                help="Path to sxs_catalog.json (via get_sxs_public_metadata.py)",
                required=True)
@@ -38,12 +34,6 @@ p.add_argument("--dry_run",
                help="Test this script, but don't actually download anything",
                action="store_true")
 args = p.parse_args()
-
-try:
-    os.mkdir(args.output_dir)
-except:
-    print("Error: output directory " + args.output_dir + " already exists.")
-    exit(-1)
     
 with open(args.sxs_catalog_metadata, 'r') as file:
         sxs_catalog_metadata = json.load(file)
