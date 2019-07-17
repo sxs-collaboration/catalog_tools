@@ -12,8 +12,9 @@ This repo contains the following python scripts:
 
 This repo contains the following notebooks in `Examples/`:
   * `sxs_catalog_download_example.ipynb` -- how to download and interact with catalog data
-  * `sxs_metadata_example.ipynb` -- how to download and manipulate zenodo metadata
+  * `sxs_metadata_example.ipynb` -- how to download and manipulate sxs metadata provided at data.black-holes.org
   * `sxs_arxiv_metadata_example.ipynb` -- how to download and manipulate sxs metadata included in arXiv:1904.04831
+  * `sxs_zenodo_metadata_example.ipynb` -- how to download and manipulate zenodo metadata
   * `waveform_tutorial.ipynb` -- how to work with finite-radius waveforms and extrapolated waveforms, and how to compute the wave polarizations at a chosen sky location
 
 ## Dependencies
