@@ -30,13 +30,17 @@ convert_path=/home/geoffrey/BBH/Catalog/catalog_tools/convert_sxs_to_lvc.py
 romspline_path=/home/geoffrey/BBH/Catalog/CatalogAnalysis
 
 # Batch command used when submitting jobs to convert waveforms
-batch_cmd="srun -p orca-0 -n 1 -t 12:00:00"
+batch_cmd="sbatch"
 
 # Python environment command
 # Run this command to activate the python environment you want to use
 # Set to "echo date" or some other do-nothing command if this isn't 
 # necessary on your system.
 python_env_cmd="/home/geoffrey/apps/anaconda2/bin/activate root"
+
+# Path to store batch submission scripts and stdout, stderr for each job
+# (will be created if it doesn't exist)
+output_path="/home/geoffrey/BBH/Catalog/convert_2018_public"
 
 #############################################################
 # SHOULD NOT NEED TO MODIFY ANYTHING BELOW THIS LINE
@@ -116,7 +120,13 @@ do
     done
 done
 
+# Make the output directory if it doesn't exist
+mkdir -p ${output_path}
+
 # Finally, loop over all paths and submit a conversion job
+typeset -i i CORESPERNODE
+let CORESPERNODE=20 i=0
+
 for path in "$@"
 do
     abs_path=$(readlink -f ${path})
@@ -128,7 +138,37 @@ do
     metadata_file=${abs_path}/metadata.json
     jobname="$(basename $(dirname ${abs_path})).${resolution}"
 
-    cmd_to_run="${batch_cmd} -J ${jobname} -o ${abs_path}/convert.stdout -e ${abs_path}/convert.stderr $(which python) ${convert_cmd} --sxs_catalog_metadata ${catalog_json} --sxs_catalog_resolutions ${res_json} --modes all --resolution ${resolution} --sxs_data ${abs_path} --out_path ${abs_path}  --romspline_path ${romspline_path}"
-    echo "Running command ${cmd_to_run}"
-    $(${cmd_to_run}) &
+    # If $i=0, write a conversion script for this path
+    if ((i==0)); then
+        submit_file=${output_path}/${jobname}.sh
+        echo "#!/bin/bash -" >> ${submit_file}
+        echo "#SBATCH -o ${jobname}.stdout" >> ${submit_file}
+        echo "#SBATCH -e ${jobname}.stderr" >> ${submit_file}
+        echo "#SBATCH --ntasks 20" >> ${submit_file}
+        echo "#SBATCH --cpus-per-task 1" >> ${submit_file}
+        echo "#SBATCH -J ${jobname}" >> ${submit_file}
+        echo "#SBATCH --nodes 1" >> ${submit_file}
+        echo "#SBATCH -p orca-1" >> ${submit_file}
+        echo "#SBATCH -t 12:00:00" >> ${submit_file}
+        echo "#SBATCH -D ${output_path}" >> ${submit_file}
+        echo "" >> ${submit_file}
+    fi
+
+    suffix="&"
+    if ((i==CORESPERNODE-1)); then
+        suffix=""
+    fi
+
+    cmd_to_run="$(which python) ${convert_cmd} --sxs_catalog_metadata ${catalog_json} --sxs_catalog_resolutions ${res_json} --modes all --resolution ${resolution} --sxs_data ${abs_path} --out_path ${abs_path}  --romspline_path ${romspline_path} ${suffix}"
+    echo ${cmd_to_run} >> ${submit_file}
+
+    if ((i==CORESPERNODE-1)); then
+        echo "wait" >> ${submit_file}
+        echo "" >> ${submit_file}
+        echo "${batch_cmd} ${submit_file}"
+        ${batch_cmd} ${submit_file}
+        let i=0
+    else
+        let i++
+    fi
 done
