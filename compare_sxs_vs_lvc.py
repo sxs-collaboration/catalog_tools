@@ -39,14 +39,14 @@ def sxs_id_from_alt_names(alt_names):
 
 def compare_attribute(lvc_key, lvc_value, sxs_value):
     if (lvc_value == sxs_value):
-        print("= " + lvc_key + " (" + str(lvc_value) + ")")
+        print("[=] " + lvc_key + " (" + str(lvc_value) + ")")
     else:
-        print("x " + lvc_key + " (lvc: " + str(lvc_value) + ", sxs: " \
+        print("[x] " + lvc_key + " (lvc: " + str(lvc_value) + ", sxs: " \
                    + str(sxs_value) + ")")
 
 def compare_attributes(lvc, metadata):
     """Compares LVC attributes to SXS metadata"""
-    print("Comparing metadata")
+    print("# Comparing metadata")
     sxs_id = sxs_id_from_alt_names(metadata["alternative_names"])
     compare_attribute("name", lvc.attrs["name"], sxs_id)
 
@@ -206,10 +206,10 @@ def compare_wave_time_series(lvc, rhOverM, extrap="Extrapolated_N2"):
 
     diff = np.max(np.abs(sxs_times - lvc_wave_times))
     if (diff > 0.0):
-        print("x NRtimes differs from SXS l=m=2 times (diff = " \
+        print("[x] NRtimes differs from SXS l=m=2 times (diff = " \
               + str(diff) + ")")
     else:
-        print("= NRtimes agrees with SXS l=m=2 times (diff = " \
+        print("[=] NRtimes agrees with SXS l=m=2 times (diff = " \
               + str(diff) + ")")
 
 if __name__ == "__main__":
@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
     compare_attributes(lvc, metadata)
 
-    print("Comparing datasets")
+    print("# Comparing datasets")
     # Get the keys for each spline
     splines_to_check = []
     time_series_to_check = []
@@ -244,24 +244,24 @@ if __name__ == "__main__":
             diff = compare_splines(args.lvc_file, rhOverM, horizons, key)
             tol = float(np.array(lvc[key]['tol']))
             if np.abs(diff) < tol:
-                print("= " + key + " (diff = " + str(diff) + ", tol = " \
+                print("[=] " + key + " (diff = " + str(diff) + ", tol = " \
                            + str(tol) + ")")
             else:
-                print("x " + key + " (diff = " + str(diff)  + ", tol = " \
+                print("[x] " + key + " (diff = " + str(diff)  + ", tol = " \
                            + str(tol) + ")")
 
-    print("Comparing time series")
+    print("# Comparing time series")
     eps = 1.e-15
     for key in time_series_to_check:
         if "Common" in key or "HorizonA" in key or "HorizonB" in key:
             try:
                 diff = compare_time_series(lvc, rhOverM, horizons, key)
                 if diff < eps:
-                    print("= " + key + " (diff = " + str(diff) + ")")
+                    print("[=] " + key + " (diff = " + str(diff) + ")")
                 else:
-                    print("x " + key + " (diff = " + str(diff) + ")")
+                    print("[x] " + key + " (diff = " + str(diff) + ")")
             except:
-                print("Cannot diff time series " + key)
+                print("[x] Cannot diff time series " + key)
 
     compare_wave_time_series(lvc, rhOverM)
 

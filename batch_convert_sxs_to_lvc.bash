@@ -125,7 +125,7 @@ mkdir -p ${output_path}
 
 # Finally, loop over all paths and submit a conversion job
 typeset -i i CORESPERNODE
-let CORESPERNODE=20 i=0
+let CORESPERNODE=4 i=0
 
 for path in "$@"
 do
@@ -149,7 +149,7 @@ do
         echo "#SBATCH -J ${jobname}" >> ${submit_file}
         echo "#SBATCH --nodes 1" >> ${submit_file}
         echo "#SBATCH -p orca-1" >> ${submit_file}
-        echo "#SBATCH -t 12:00:00" >> ${submit_file}
+        echo "#SBATCH -t 120:00:00" >> ${submit_file}
         echo "#SBATCH -D ${output_path}" >> ${submit_file}
         echo "" >> ${submit_file}
     fi
