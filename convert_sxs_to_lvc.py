@@ -31,6 +31,7 @@ if __name__ == "__main__":
     p.add_argument("--modes", help="'all', '22only', or int for max l")
     p.add_argument("--out_path", help="Path where LVC format file is output")
     p.add_argument("--romspline_path", help="Path to romspline python module", default=".")
+    p.add_argument("--truncation_time", help="If specified, truncate time series at this time instead of at the reference time", type=float, default=None)
     args = p.parse_args()
 
     if args.modes == 'all':
@@ -145,7 +146,8 @@ def peak_time_from_sxs(
 
 
 def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
-                       extrapolation_order="Extrapolated_N2"):
+                       extrapolation_order="Extrapolated_N2",
+                       truncation_time=None):
     """Returns amplitude and phase for an SXS-format waveform, for a list of
     Ylm modes. If modes='all', return all modes for l=2 through l=8,
     inclusive."""
@@ -162,7 +164,10 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
     # All modes have the same time, so just look at the l=m=2 mode to get
     # the times
     times = sxs_format_waveform[extrap]['Y_l2_m2.dat'][:, 0]
-    start = first_index_before_reference_time(times, metadata)
+    if truncation_time == None:
+        start = first_index_before_reference_time(times, metadata)
+    else:
+        start = first_index_after_time(times, truncation_time)
     peak = peak_time_from_sxs(
         sxs_format_waveform, metadata, extrapolation_order)
     for mode in modes:
@@ -186,13 +191,14 @@ def amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
 
 
 def spline_amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
-                              extrapolation_order="Extrapolated_N2"):
+                              extrapolation_order="Extrapolated_N2",
+                              truncation_time=None):
     """Returns spline amplitude and phase for an SXS-format waveform, for a
     list of Ylm modes. If modes='all', return all modes for l=2 through l=8,
     inclusive."""
     modes, times, amps, phases, start_time, peak_time, l_max \
         = amp_phase_from_sxs(sxs_format_waveform, metadata, modes,
-                             extrapolation_order)
+                             extrapolation_order, truncation_time)
     spline_amps = []
     spline_phases = []
     for i, mode in enumerate(modes):
@@ -725,7 +731,8 @@ def write_metadata_from_sxs(out_filename, resolution, metadata, catalog,
 
 
 def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
-                       sxs_catalog_resolutions_path, modes, out_path):
+                       sxs_catalog_resolutions_path, modes, out_path, 
+                       truncation_time=None):
     """Convert a simulation from the SXS BBH catalog into the LVC format.
     sxs_data_path is a path to a directory that must contain the following:
         i)   rhOverM_Asymptotic_GeometricUnits_CoM.h5
@@ -767,12 +774,16 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
     log("  modes: " + str(modes))
     log("  out_path: " + str(out_path))
 
+    extrapolation_order = "Extrapolated_N2"
+    log("Extrapolation order: " + extrapolation_order)
+
     out_name = out_path + "/" + sxs_id.replace(':', '_') + "_Res" \
                         + str(resolution) + ".h5"
     log("Output filename is " + out_name)
 
     modes, times, spline_amps, spline_phases, start_time, peak_time, l_max \
-        = spline_amp_phase_from_sxs(rhOverM, metadata, modes)
+        = spline_amp_phase_from_sxs(rhOverM, metadata, modes, 
+                                    extrapolation_order, truncation_time)
     write_splines_to_H5(out_name, modes, spline_amps, spline_phases, times)
 
     horizon_splines_to_write, t_A, t_B, t_C \
@@ -807,4 +818,4 @@ def convert_simulation(sxs_data_path, resolution, sxs_catalog_metadata_path,
 
 if __name__ == "__main__":
    convert_simulation(args.sxs_data, args.resolution, args.sxs_catalog_metadata,
-                       args.sxs_catalog_resolutions, modes, args.out_path)    
+                       args.sxs_catalog_resolutions, modes, args.out_path, args.truncation_time)    
