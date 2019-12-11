@@ -2,6 +2,7 @@ import argparse
 import h5py
 import json
 import numpy as np
+import romspline
 import sys
 import time
 
@@ -13,15 +14,7 @@ if __name__ == "__main__":
     p.add_argument("--file2",
                    help="Path to second file",
                    required=True)
-    p.add_argument("--romspline_path",
-                   help="Path to romspline module",
-                   default=".")
     args = p.parse_args()
-
-    # Update next line with path to romspline, if not in a standard location
-    sys.path.append(args.romspline_path)
-
-import romspline
 
 def compare_attributes(file1, file2):
     print("Comparing attributes")

@@ -2,6 +2,7 @@ import argparse
 import h5py
 import json
 import numpy as np
+import romspline
 import sys
 import time
 
@@ -19,14 +20,7 @@ if __name__ == "__main__":
     p.add_argument("--sxs_json",
                    help="Path to metadata.json",
                    required=True)
-    p.add_argument("--romspline_path",
-                   help="Path to romspline module",
-                   default=".")
     args = p.parse_args()
-
-    # Update next line with path to romspline, if not in a standard location
-    sys.path.append(args.romspline_path)
-import romspline
 
 def sxs_id_from_alt_names(alt_names):
     """Takes an array of alternative names from an SXS metadata.json file

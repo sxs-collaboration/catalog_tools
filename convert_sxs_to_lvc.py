@@ -11,6 +11,7 @@ import h5py
 import json
 import numpy as np
 import os
+import romspline
 import sys
 import time
 
@@ -30,7 +31,6 @@ if __name__ == "__main__":
                    required=True)
     p.add_argument("--modes", help="'all', '22only', or int for max l")
     p.add_argument("--out_path", help="Path where LVC format file is output")
-    p.add_argument("--romspline_path", help="Path to romspline python module", default=".")
     p.add_argument("--truncation_time", help="If specified, truncate time series at this time instead of at the reference time", type=float, default=None)
     args = p.parse_args()
 
@@ -41,11 +41,6 @@ if __name__ == "__main__":
     else:
         l_max = int(args.modes)
         modes = [[l,m] for l in range(2,l_max+1) for m in range(-l,l+1)]
-
-    # Update next line with path to romspline, if not in a standard location
-    sys.path.append(args.romspline_path)
-
-import romspline
 
 ########################################################
 # Logging

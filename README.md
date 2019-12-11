@@ -18,8 +18,10 @@ This repo contains the following notebooks in `Examples/`:
   * `waveform_tutorial.ipynb` -- how to work with finite-radius waveforms and extrapolated waveforms, and how to compute the wave polarizations at a chosen sky location
 
 ## Dependencies
-  * `get_sxs_bbh_catalog.py` and `get_sxs_public_metadata.py` depnd on the `sxs` python module (https://github.com/moble/sxs), which require python 3.
-  * `convert_sxs_to_lvc.py`, `compare_sxs_converted_lvc.py`, `compare_sxs_converted_lvc.py`, and `compare_sxs_vs_lvc.py` depend on `romspline` (https://bitbucket.org/chadgalley/romspline/src/master/), which in my testing currently only supports python 2.
+  * All scripts require python 3 (https://python.org) and have been tested using python 3.7.
+  * `get_sxs_bbh_catalog.py` and `get_sxs_public_metadata.py` depnd on the `sxs` python module (https://github.com/moble/sxs), which requires python 3.
+  * `convert_sxs_to_lvc.py`, `compare_sxs_converted_lvc.py`, `compare_sxs_converted_lvc.py`, and `compare_sxs_vs_lvc.py` depend on `romspline` (https://github.com/crgalley/romspline), which is now compatible with python 3.
+  * To install the prerequisites, you can run the command `pip install sxs romspline`, or add the text `!pip install sxs romspline` to the beginning of a jupyter notebook.
 
 ## Questions
 
