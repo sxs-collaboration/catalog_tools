@@ -1,3 +1,6 @@
+# This repository is deprecated
+For analyzing waveforms from the [SXS Catalog](https://black-holes.org/waveforms), please instead use the [`sxs` python package](https://github.com/sxs-collaboration/sxs/). [Documentation](https://sxs.readthedocs.io) for the `sxs` package explains how to get started.
+
 # catalog_tools
 Example scripts to interact with the SXS Catalog (https://black-holes.org/waveforms) and its data, hosted on Zenodo (https://zenodo.org). The data in the catalog is described in https://arxiv.org/abs/1904.04831.
 
